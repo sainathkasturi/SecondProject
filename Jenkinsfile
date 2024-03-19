@@ -1,47 +1,30 @@
 pipeline {
-    agent any
-    tools {
-        maven 'Maven363'
-    }
-    options {
-        timeout(10)
-        buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '5', numToKeepStr: '5')
-    }
+    agent any 
+        tools {
+               maven "maven-linux"
+               jdk "java-linux"
+              }
     stages {
-        stage('Build') {
-            steps {
-                sh "mvn clean install"
+        stage ('checkout') {
+            steps{
+                git "https://github.com/sainathkasturi/SecondProject.git"
             }
         }
-        stage('upload artifact to nexus') {
+        stage ('build') {
             steps {
-                nexusArtifactUploader artifacts: [
-                    [
-                        artifactId: 'wwp', 
-                        classifier: '', 
-                        file: 'target/wwp-1.0.0.war', 
-                        type: 'war'
-                    ]
-                ], 
-                    credentialsId: 'nexus3', 
-                    groupId: 'koddas.web.war', 
-                    nexusUrl: '10.0.0.91:8081', 
-                    nexusVersion: 'nexus3', 
-                    protocol: 'http', 
-                    repository: 'samplerepo', 
-                    version: '1.0.0'
+                  sh 'mvn clean package'
             }
         }
-    }
-    post {
-        always{
-            deleteDir()
+        stage ('deploy') {
+            steps {
+                   sh 'opt/deploy.sh'
+            }
         }
-        failure {
-            echo "sendmail -s mvn build failed receipients@my.com"
-        }
-        success {
-            echo "The job is successful"
+        stage ('artifact') {
+            steps {
+                archiveArtifacts 'target/*.war'
+            }
         }
     }
 }
+        
